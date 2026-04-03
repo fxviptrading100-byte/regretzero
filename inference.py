@@ -4,20 +4,15 @@ import sys
 import uuid
 from openai import OpenAI
 
-# === REQUIRED ENVIRONMENT VARIABLES ===
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/models")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=HF_TOKEN
-)
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 def main():
     print("[START] RegretZero Inference Started")
 
-    # Read input from stdin (hackathon expects JSON)
     try:
         input_data = json.loads(sys.stdin.read().strip())
     except:
@@ -28,7 +23,6 @@ def main():
 
     print(f"[STEP] Processing decision: {decision}")
 
-    # Call LLM using the required OpenAI client format
     try:
         response = client.chat.completions.create(
             model=MODEL_NAME,
