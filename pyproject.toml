@@ -2,3 +2,12 @@
 name = "regretzero"
 version = "1.0.0"
 requires-python = ">=3.11"
+dependencies = [
+    "openai",
+    "fastapi",
+    "uvicorn",
+    "openenv-core>=0.2.0",
+]
+
+[project.scripts]
+server = "server.app:app"
