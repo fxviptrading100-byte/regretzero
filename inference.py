@@ -15,10 +15,37 @@ client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 @app.get("/")
 async def root():
-    return HTMLResponse("""
-    <h1>RegretZero Space is Running!</h1>
-    <p>Send POST to /analyze with JSON: {"decision": "your decision here"}</p>
-    """)
+    html = """
+    <html>
+    <head><title>RegretZero</title></head>
+    <body>
+        <h1>RegretZero - Future Self Advisor</h1>
+        <p>Type your decision below:</p>
+        <textarea id="decision" rows="4" cols="50" placeholder="I am nervous for my interview..."></textarea><br><br>
+        <button onclick="analyze()">Analyze Decision</button>
+        <div id="result"></div>
+        <script>
+            async function analyze() {
+                const decision = document.getElementById("decision").value;
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({decision: decision, session_id: "test"})
+                });
+                const data = await response.json();
+                document.getElementById("result").innerHTML = `
+                    <h2>Result:</h2>
+                    <p><strong>Suggestion:</strong> ${data.suggestion}</p>
+                    <p><strong>Regret Risk:</strong> ${data.regret_risk}</p>
+                    <p><strong>Confidence:</strong> ${data.confidence}</p>
+                    <p><strong>Verdict:</strong> ${data.verdict}</p>
+                `;
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(html)
 
 @app.post("/analyze")
 async def analyze(request: Request):
