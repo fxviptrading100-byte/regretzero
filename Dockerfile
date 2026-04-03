@@ -45,10 +45,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 # Expose the application port
 EXPOSE $PORT
 
-# Run the FastAPI server with production settings
-CMD ["uvicorn", "env.regret_openenv:app", \
-     "--host", "0.0.0.0", \
-     "--port", "$PORT", \
-     "--workers", "1", \
-     "--access-log", "-", \
-     "--log-level", "info"]
+# Run the inference server with production settings
+CMD ["python", "inference.py"]
