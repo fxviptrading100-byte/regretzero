@@ -145,3 +145,11 @@ async def analyze_decision(request: dict):
     print("[STEP] Analysis complete")
     print("[END] RegretZero Analysis Complete")
     return result
+
+
+def main():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
