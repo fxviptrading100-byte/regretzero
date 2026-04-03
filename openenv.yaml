@@ -1,9 +1,55 @@
 name: regretzero
 version: 1.0
-description: Regret minimization RL environment for real-life decisions
+description: Regret minimization RL environment — Future Self Advisor
 author: Avi
 entrypoint: inference.py
+
 environment:
   - API_BASE_URL
   - MODEL_NAME
   - HF_TOKEN
+
+tasks:
+  - id: career_decision
+    description: Should I quit my stable job to pursue my startup idea?
+    input:
+      decision: "Should I quit my stable job to pursue my startup idea?"
+      stakes: high
+      timeframe: "5 years"
+    grader:
+      metric: reward
+      range: [0.0, 1.0]
+
+  - id: relationship_decision
+    description: Should I move to another city for a relationship?
+    input:
+      decision: "Should I move to another city for a relationship?"
+      stakes: high
+      timeframe: "3 years"
+    grader:
+      metric: reward
+      range: [0.0, 1.0]
+
+  - id: education_decision
+    description: Should I go back to school for a masters degree?
+    input:
+      decision: "Should I go back to school for a masters degree?"
+      stakes: medium
+      timeframe: "2 years"
+    grader:
+      metric: reward
+      range: [0.0, 1.0]
+
+endpoints:
+  reset:
+    path: /reset
+    method: POST
+  step:
+    path: /step
+    method: POST
+  state:
+    path: /state
+    method: GET
+  analyze:
+    path: /analyze
+    method: POST
