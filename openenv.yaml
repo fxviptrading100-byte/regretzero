@@ -1,0 +1,9 @@
+name: regretzero
+version: 1.0
+description: Regret minimization RL environment for real-life decisions
+author: Avi
+entrypoint: inference.py
+environment:
+  - API_BASE_URL
+  - MODEL_NAME
+  - HF_TOKEN
