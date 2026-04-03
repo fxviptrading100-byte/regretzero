@@ -42,12 +42,12 @@ class ActorCriticNetwork(nn.Module):
         
         for i in range(num_layers):
             backbone_layers.extend([
-                nn.Linear(input_dim, hidden_dim),
+                nn.Linear(input_dim, self.hidden_dim),
                 nn.ReLU(),
-                nn.LayerNorm(hidden_dim),
+                nn.LayerNorm(self.hidden_dim),
                 nn.Dropout(0.1)
             ])
-            input_dim = hidden_dim
+            input_dim = self.hidden_dim
             
         self.backbone = nn.Sequential(*backbone_layers)
         
@@ -62,11 +62,11 @@ class ActorCriticNetwork(nn.Module):
         
         # Critic head (value network)
         self.critic_head = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
             nn.ReLU(),
-            nn.LayerNorm(hidden_dim // 2),
+            nn.LayerNorm(self.hidden_dim // 2),
             nn.Dropout(0.1),
-            nn.Linear(hidden_dim // 2, 1)
+            nn.Linear(self.hidden_dim // 2, 1)
         )
         
         # Initialize weights
@@ -186,7 +186,8 @@ class PPOAgent:
         value_coef: float = 0.5,
         entropy_coef: float = 0.01,
         max_grad_norm: float = 0.5,
-        device: str = "auto"
+        device: str = "auto",
+        **kwargs
     ):
         """
         Initialize PPO agent.

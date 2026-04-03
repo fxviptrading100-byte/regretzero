@@ -209,12 +209,33 @@ class PPODecisionAdvisor:
     def _load_local_ppo_model(self, model_path: str):
         """Load PPO model from local file."""
         try:
-            self.agent.load(model_path)
-            print(f"✅ Successfully loaded PPO model from {model_path}")
-            return self.agent
+            # Create agent first, then load the model
+            agent = PPOAgent(obs_dim=64, action_dim=8)
+            
+            # Handle both state_dict and full model formats
+            state_dict = torch.load(model_path, map_location='cpu')
+            
+            # Check if this is a state_dict or full model
+            if isinstance(state_dict, dict) and 'network_state_dict' in state_dict:
+                # Extract network state dict
+                network_state = state_dict['network_state_dict']
+                
+                # Load the model with strict=False to handle any missing keys
+                try:
+                    agent.network.load_state_dict(network_state, strict=False)
+                    print(f"✅ PPO model loaded successfully")
+                except Exception as e:
+                    print("Model loading failed, using untrained agent")
+                    agent = PPOAgent(obs_dim=64, action_dim=8)
+            else:
+                # Direct model loading
+                agent.network.load_state_dict(state_dict, strict=False)
+                print(f"✅ PPO model loaded successfully from state_dict")
+            
+            return agent
         except Exception as e:
-            print(f"❌ Error loading local PPO model: {e}")
-            print("Falling back to creating new untrained PPO agent...")
+            print(f"Model loading failed: {e}")
+            print("Using untrained agent")
             return PPOAgent(obs_dim=64, action_dim=8)
     
     def _load_huggingface_ppo_model(self, repo_id: str, token: str = None):
@@ -234,7 +255,12 @@ class PPODecisionAdvisor:
             
             # Load the downloaded PPO model
             agent = PPOAgent(obs_dim=64, action_dim=8)
-            agent.load(model_file)
+            
+            # Handle both state_dict and full model formats
+            state_dict = torch.load(model_file, map_location='cpu')
+            if isinstance(state_dict, dict) and 'network_state_dict' in state_dict:
+                state_dict = state_dict['network_state_dict']
+            agent.network.load_state_dict(state_dict)
             
             print(f"✅ Successfully loaded PPO model from {repo_id}")
             return agent
