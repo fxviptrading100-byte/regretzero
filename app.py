@@ -67,15 +67,17 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
  
 def score_result(result: dict) -> float:
     score = 0.0
-    if isinstance(result.get("suggestion"), str) and len(result["suggestion"]) > 30:
-        score += 0.4
+    suggestion = result.get("suggestion", "")
+    if isinstance(suggestion, str) and len(suggestion) > 30:
+        length_score = min(len(suggestion) / 500, 0.95) * 0.38
+        score += length_score
     regret_risk = result.get("regret_risk", -1)
-    if isinstance(regret_risk, (int, float)) and 0.0 <= regret_risk <= 1.0:
-        score += 0.3
+    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
+        score += 0.29
     confidence = result.get("confidence", -1)
-    if isinstance(confidence, (int, float)) and 0.0 <= confidence <= 1.0:
-        score += 0.3
-    return round(score, 2)
+    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
+        score += 0.29
+    return round(min(score, 0.99), 2)
  
  
 @app.get("/")
