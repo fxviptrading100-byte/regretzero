@@ -72,12 +72,10 @@ def score_result(result: dict) -> float:
         score += length_score
     regret_risk = result.get("regret_risk", -1)
     if isinstance(regret_risk, (int, float)):
-        # clamp to strictly inside (0, 1)
         regret_risk = max(0.01, min(float(regret_risk), 0.99))
         score += 0.29
     confidence = result.get("confidence", -1)
     if isinstance(confidence, (int, float)):
-        # clamp to strictly inside (0, 1)
         confidence = max(0.01, min(float(confidence), 0.99))
         score += 0.29
     return round(min(max(score, 0.01), 0.99), 2)
@@ -125,14 +123,16 @@ async def step_endpoint(request: Request):
         }
     }
 
+
 @app.post("/analyze")
-async def analyze_decision(request: dict):
+async def analyze_decision(request: Request):
     print("[START] RegretZero Analysis Started")
 
-    decision = request.get("decision", "No decision provided")
-    stakes = request.get("stakes", "medium")
-    timeframe = request.get("timeframe", "1 year")
-    session_id = request.get("session_id", str(uuid.uuid4()))
+    body = await request.json()
+    decision = body.get("decision", "No decision provided")
+    stakes = body.get("stakes", "medium")
+    timeframe = body.get("timeframe", "1 year")
+    session_id = body.get("session_id", str(uuid.uuid4()))
 
     print(f"[STEP] Processing decision: {decision}")
 
