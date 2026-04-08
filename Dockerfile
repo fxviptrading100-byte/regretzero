@@ -3,6 +3,5 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 COPY . /app
-RUN chmod +x start.sh
 EXPOSE 7860
-CMD ["bash", "start.sh"]
+CMD ["python", "inference.py"]
