@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import uuid
+import re
 
 TASKS = [
     {
@@ -58,10 +59,6 @@ def score_result(result: dict) -> float:
     return round(min(score, 0.99), 2)
 
 
-def reset():
-    return {"status": "reset", "tasks": [t["id"] for t in TASKS]}
-
-
 def step(task: dict, result: dict) -> dict:
     reward = score_result(result)
     return {
@@ -75,23 +72,28 @@ def step(task: dict, result: dict) -> dict:
     }
 
 
-def state():
-    return {"tasks": TASKS, "status": "ready"}
-
-
 def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -> dict:
     try:
+        # Validate token early before attempting API call
+        HF_TOKEN = os.getenv("HF_TOKEN")
+        if not HF_TOKEN:
+            print("[WARN] HF_TOKEN not set, skipping LLM call")
+            return None
+
         from openai import OpenAI
+
         API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
         MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
-        HF_TOKEN = os.getenv("HF_TOKEN")
+
         client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+
         prompt = (
             f"A person faces this decision: {decision}\n"
             f"Stakes level: {stakes}. Timeframe: {timeframe}.\n"
             f"As their future self {timeframe} from now, give concrete advice to minimize regret. "
             f"Respond in JSON only with keys: suggestion (string), regret_risk (float 0-1), confidence (float 0-1)."
         )
+
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -107,12 +109,24 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
             temperature=0.7,
             max_tokens=300
         )
+
         raw = response.choices[0].message.content.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        return json.loads(raw.strip())
+
+        # Robust cleanup: strip all markdown code fences
+        raw = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
+
+        parsed = json.loads(raw)
+
+        # Validate required keys exist and are correct types
+        if not isinstance(parsed.get("suggestion"), str):
+            raise ValueError("Missing or invalid 'suggestion'")
+        if not isinstance(parsed.get("regret_risk"), (int, float)):
+            raise ValueError("Missing or invalid 'regret_risk'")
+        if not isinstance(parsed.get("confidence"), (int, float)):
+            raise ValueError("Missing or invalid 'confidence'")
+
+        return parsed
+
     except Exception as e:
         print(f"[STEP] LLM call failed, using fallback: {e}")
         return None
@@ -121,10 +135,15 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
 def main():
     print("[START] RegretZero Inference Started")
 
+    # Fix: don't block on stdin if nothing is piped in
+    input_data = {}
     try:
-        raw_input = sys.stdin.read().strip()
-        input_data = json.loads(raw_input) if raw_input else {}
-    except Exception:
+        if not sys.stdin.isatty():
+            raw_input = sys.stdin.read().strip()
+            if raw_input:
+                input_data = json.loads(raw_input)
+    except Exception as e:
+        print(f"[WARN] Could not read stdin: {e}")
         input_data = {}
 
     session_id = input_data.get("session_id", str(uuid.uuid4()))
@@ -134,8 +153,12 @@ def main():
         print(f"[STEP] Running task: {task['id']}")
         try:
             llm_result = call_llm(task["decision"], task["stakes"], task["timeframe"])
+            verdict = "LLM"
+
             if llm_result is None:
                 llm_result = FALLBACK_RESULTS[task["id"]]
+                verdict = "FALLBACK"
+
             step_result = step(task, llm_result)
             all_results.append({
                 "task_id": task["id"],
@@ -143,10 +166,11 @@ def main():
                 "suggestion": llm_result.get("suggestion", ""),
                 "regret_risk": llm_result.get("regret_risk", 0.5),
                 "confidence": llm_result.get("confidence", 0.5),
-                "verdict": "HUMAN VERIFIED",
+                "verdict": verdict,
                 "reward": step_result["reward"]
             })
-            print(f"[STEP] Task {task['id']} reward: {step_result['reward']}")
+            print(f"[STEP] Task {task['id']} reward: {step_result['reward']} ({verdict})")
+
         except Exception as e:
             print(f"[STEP] ERROR on task {task['id']}: {e}")
             fallback = FALLBACK_RESULTS[task["id"]]
