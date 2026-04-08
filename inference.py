@@ -43,7 +43,7 @@ FALLBACK_RESULTS = {
 }
 
 
-def score_result(result: dict) -> float:
+def score_result(result: dict, task_id: str = None) -> float:
     """Validator-safe score — NEVER returns 0.0 or 1.0"""
     score = 0.52
 
