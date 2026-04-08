@@ -96,22 +96,23 @@ GRADERS = {
 }
 
 
-def score_result(result: dict, task_id: str = None) -> float:
-    """Route to the correct grader, fallback to safe generic grader."""
-    if task_id and task_id in GRADERS:
-        return GRADERS[task_id](result)
-    # Generic fallback — always strictly between 0 and 1
-    score = 0.05
+def score_result(result: dict) -> float:
+    score = 0.0
     suggestion = result.get("suggestion", "")
     if isinstance(suggestion, str) and len(suggestion) > 30:
-        score += min(len(suggestion) / 600, 0.35)
+        length_score = min(len(suggestion) / 500, 0.95) * 0.38
+        score += length_score
     regret_risk = result.get("regret_risk", -1)
-    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
-        score += 0.28
+    if isinstance(regret_risk, (int, float)):
+        # clamp to strictly inside (0, 1)
+        regret_risk = max(0.01, min(float(regret_risk), 0.99))
+        score += 0.29
     confidence = result.get("confidence", -1)
-    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
-        score += 0.28
-    return round(min(max(score, 0.01), 0.99), 4)
+    if isinstance(confidence, (int, float)):
+        # clamp to strictly inside (0, 1)
+        confidence = max(0.01, min(float(confidence), 0.99))
+        score += 0.29
+    return round(min(max(score, 0.01), 0.99), 2)
 
 
 def step(task: dict, result: dict) -> dict:
