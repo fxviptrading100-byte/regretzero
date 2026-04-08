@@ -18,7 +18,7 @@ tasks:
       timeframe: "5 years"
     grader:
       metric: reward
-      range: [0.0, 1.0]
+      range: [0.01, 0.99]
 
   - id: relationship_decision
     description: Should I move to another city for a relationship?
@@ -28,7 +28,7 @@ tasks:
       timeframe: "3 years"
     grader:
       metric: reward
-      range: [0.0, 1.0]
+      range: [0.01, 0.99]
 
   - id: education_decision
     description: Should I go back to school for a masters degree?
@@ -38,7 +38,7 @@ tasks:
       timeframe: "2 years"
     grader:
       metric: reward
-      range: [0.0, 1.0]
+      range: [0.01, 0.99]
 
 endpoints:
   reset:
