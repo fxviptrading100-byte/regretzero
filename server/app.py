@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import os
 import json
 import uuid
@@ -104,15 +104,15 @@ def state():
 
 
 @app.post("/step")
-async def step_endpoint(request: dict):
-    task_id = request.get("task_id")
-    # handle both nested and flat formats
-    result = request.get("result", {})
+async def step_endpoint(request: Request):
+    body = await request.json()
+    task_id = body.get("task_id")
+    result = body.get("result", {})
     if not result:
         result = {
-            "suggestion": request.get("suggestion", ""),
-            "regret_risk": request.get("regret_risk", 0.5),
-            "confidence": request.get("confidence", 0.5)
+            "suggestion": body.get("suggestion", ""),
+            "regret_risk": body.get("regret_risk", 0.5),
+            "confidence": body.get("confidence", 0.5)
         }
     reward = score_result(result)
     return {
