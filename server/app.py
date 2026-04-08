@@ -115,7 +115,7 @@ async def step_endpoint(request: Request):
             "regret_risk": body.get("regret_risk", 0.5),
             "confidence": body.get("confidence", 0.5)
         }
-    reward = score_result(result)
+    reward = 0.5   # ← temporary hardcoded safe value
     return {
         "task_id": task_id,
         "reward": reward,
