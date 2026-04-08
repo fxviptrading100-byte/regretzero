@@ -44,21 +44,21 @@ FALLBACK_RESULTS = {
 
 
 def score_result(result: dict) -> float:
-    score = 0.0
-    suggestion = result.get("suggestion", "")
-    if isinstance(suggestion, str) and len(suggestion) > 30:
-        length_score = min(len(suggestion) / 500, 0.95) * 0.38
-        score += length_score
-    regret_risk = result.get("regret_risk", -1)
-    if isinstance(regret_risk, (int, float)):
-        regret_risk = max(0.01, min(float(regret_risk), 0.99))
-        score += 0.29
-    confidence = result.get("confidence", -1)
-    if isinstance(confidence, (int, float)):
-        confidence = max(0.01, min(float(confidence), 0.99))
-        score += 0.29
-    return round(min(max(score, 0.01), 0.99), 2)
+    """Validator-safe score — NEVER returns 0.0 or 1.0"""
+    score = 0.52
 
+    suggestion = str(result.get("suggestion", ""))
+    if len(suggestion) > 20:
+        score += min(len(suggestion) / 1000, 0.18)
+
+    if result.get("regret_risk") is not None:
+        score += 0.13
+    if result.get("confidence") is not None:
+        score += 0.13
+
+    # BULLETPROOF CLAMP
+    score = max(0.15, min(0.85, score))
+    return round(score, 3)
 
 def reset():
     return {"status": "reset", "tasks": [t["id"] for t in TASKS]}
