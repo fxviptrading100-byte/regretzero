@@ -2,7 +2,7 @@ import uuid
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from inference import TASKS, FALLBACK_RESULTS, call_llm, step, reset, state
+from inference import TASKS, FALLBACK_RESULTS, call_llm, step
 
 app = FastAPI(title="RegretZero", version="1.0.0")
 
@@ -21,19 +21,16 @@ def health():
     return {"status": "healthy"}
 
 
-# ✅ Required by OpenEnv hackathon checker
 @app.post("/reset")
 def env_reset():
-    return reset()
+    return {"status": "reset", "tasks": [t["id"] for t in TASKS]}
 
 
-# ✅ Required by OpenEnv hackathon checker
 @app.get("/state")
 def env_state():
-    return state()
+    return {"tasks": TASKS, "status": "ready"}
 
 
-# ✅ Required by OpenEnv hackathon checker
 @app.post("/step")
 def env_step(request: dict):
     task_id = request.get("task_id")
