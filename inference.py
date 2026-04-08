@@ -44,37 +44,95 @@ FALLBACK_RESULTS = {
 }
 
 
-def score_result(result: dict) -> float:
-    score = 0.0
+def grade_career_decision(result: dict) -> float:
+    """Grader for career_decision task. Score strictly between 0 and 1."""
+    score = 0.05  # base — never 0
     suggestion = result.get("suggestion", "")
     if isinstance(suggestion, str) and len(suggestion) > 30:
-        length_score = min(len(suggestion) / 500, 0.95) * 0.38
-        score += length_score
+        score += min(len(suggestion) / 600, 0.35)
     regret_risk = result.get("regret_risk", -1)
     if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
-        score += 0.29
+        score += 0.28
     confidence = result.get("confidence", -1)
     if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
-        score += 0.29
-    return round(min(score, 0.99), 2)
+        score += 0.28
+    return round(min(max(score, 0.01), 0.99), 4)
+
+
+def grade_relationship_decision(result: dict) -> float:
+    """Grader for relationship_decision task. Score strictly between 0 and 1."""
+    score = 0.05
+    suggestion = result.get("suggestion", "")
+    if isinstance(suggestion, str) and len(suggestion) > 30:
+        score += min(len(suggestion) / 600, 0.35)
+    regret_risk = result.get("regret_risk", -1)
+    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
+        score += 0.28
+    confidence = result.get("confidence", -1)
+    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
+        score += 0.28
+    return round(min(max(score, 0.01), 0.99), 4)
+
+
+def grade_education_decision(result: dict) -> float:
+    """Grader for education_decision task. Score strictly between 0 and 1."""
+    score = 0.05
+    suggestion = result.get("suggestion", "")
+    if isinstance(suggestion, str) and len(suggestion) > 30:
+        score += min(len(suggestion) / 600, 0.35)
+    regret_risk = result.get("regret_risk", -1)
+    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
+        score += 0.28
+    confidence = result.get("confidence", -1)
+    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
+        score += 0.28
+    return round(min(max(score, 0.01), 0.99), 4)
+
+
+GRADERS = {
+    "career_decision": grade_career_decision,
+    "relationship_decision": grade_relationship_decision,
+    "education_decision": grade_education_decision,
+}
+
+
+def score_result(result: dict, task_id: str = None) -> float:
+    """Route to the correct grader, fallback to safe generic grader."""
+    if task_id and task_id in GRADERS:
+        return GRADERS[task_id](result)
+    # Generic fallback — always strictly between 0 and 1
+    score = 0.05
+    suggestion = result.get("suggestion", "")
+    if isinstance(suggestion, str) and len(suggestion) > 30:
+        score += min(len(suggestion) / 600, 0.35)
+    regret_risk = result.get("regret_risk", -1)
+    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
+        score += 0.28
+    confidence = result.get("confidence", -1)
+    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
+        score += 0.28
+    return round(min(max(score, 0.01), 0.99), 4)
 
 
 def step(task: dict, result: dict) -> dict:
-    reward = score_result(result)
+    task_id = task["id"]
+    reward = score_result(result, task_id)
+    # Safety clamp — strictly between 0 and 1
+    reward = max(0.01, min(reward, 0.99))
     return {
-        "task_id": task["id"],
+        "task_id": task_id,
         "reward": reward,
         "done": True,
         "info": {
             "regret_risk": result.get("regret_risk"),
-            "confidence": result.get("confidence")
+            "confidence": result.get("confidence"),
+            "grader": task_id
         }
     }
 
 
 def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -> dict:
     try:
-        # Validate token early before attempting API call
         HF_TOKEN = os.getenv("HF_TOKEN")
         if not HF_TOKEN:
             print("[WARN] HF_TOKEN not set, skipping LLM call")
@@ -111,19 +169,19 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
         )
 
         raw = response.choices[0].message.content.strip()
-
-        # Robust cleanup: strip all markdown code fences
         raw = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
-
         parsed = json.loads(raw)
 
-        # Validate required keys exist and are correct types
         if not isinstance(parsed.get("suggestion"), str):
             raise ValueError("Missing or invalid 'suggestion'")
         if not isinstance(parsed.get("regret_risk"), (int, float)):
             raise ValueError("Missing or invalid 'regret_risk'")
         if not isinstance(parsed.get("confidence"), (int, float)):
             raise ValueError("Missing or invalid 'confidence'")
+
+        # Clamp LLM output values to safe range
+        parsed["regret_risk"] = max(0.01, min(float(parsed["regret_risk"]), 0.99))
+        parsed["confidence"] = max(0.01, min(float(parsed["confidence"]), 0.99))
 
         return parsed
 
@@ -135,7 +193,6 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
 def main():
     print("[START] RegretZero Inference Started")
 
-    # Fix: don't block on stdin if nothing is piped in
     input_data = {}
     try:
         if not sys.stdin.isatty():
