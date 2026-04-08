@@ -71,12 +71,16 @@ def score_result(result: dict) -> float:
         length_score = min(len(suggestion) / 500, 0.95) * 0.38
         score += length_score
     regret_risk = result.get("regret_risk", -1)
-    if isinstance(regret_risk, (int, float)) and 0.0 < regret_risk < 1.0:
+    if isinstance(regret_risk, (int, float)):
+        # clamp to strictly inside (0, 1)
+        regret_risk = max(0.01, min(float(regret_risk), 0.99))
         score += 0.29
     confidence = result.get("confidence", -1)
-    if isinstance(confidence, (int, float)) and 0.0 < confidence < 1.0:
+    if isinstance(confidence, (int, float)):
+        # clamp to strictly inside (0, 1)
+        confidence = max(0.01, min(float(confidence), 0.99))
         score += 0.29
-    return round(min(score, 0.99), 2)
+    return round(min(max(score, 0.01), 0.99), 2)
 
 
 @app.get("/")
