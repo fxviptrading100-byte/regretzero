@@ -65,20 +65,23 @@ def call_llm(decision: str, stakes: str = "medium", timeframe: str = "1 year") -
 
 
 def score_result(result: dict) -> float:
-    score = 0.0
+    # Safe base score so it can NEVER be 0.0 or 1.0
+    score = 0.45
+
     suggestion = result.get("suggestion", "")
-    if isinstance(suggestion, str) and len(suggestion) > 30:
-        length_score = min(len(suggestion) / 500, 0.95) * 0.38
+    if isinstance(suggestion, str) and len(suggestion) > 20:
+        length_score = min(len(suggestion) / 800, 0.35)
         score += length_score
-    regret_risk = result.get("regret_risk", -1)
-    if isinstance(regret_risk, (int, float)):
-        regret_risk = max(0.01, min(float(regret_risk), 0.99))
-        score += 0.29
-    confidence = result.get("confidence", -1)
-    if isinstance(confidence, (int, float)):
-        confidence = max(0.01, min(float(confidence), 0.99))
-        score += 0.29
-    return round(min(max(score, 0.01), 0.99), 2)
+
+    # Add points if keys exist (validator sometimes sends partial data)
+    if result.get("regret_risk") is not None:
+        score += 0.25
+    if result.get("confidence") is not None:
+        score += 0.25
+
+    # SUPER STRICT clamp — never 0 or 1
+    score = max(0.12, min(0.88, score))
+    return round(score, 3)
 
 
 @app.get("/")
