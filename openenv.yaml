@@ -1,7 +1,7 @@
 name: regretzero
-version: 1.0
+version: "1.0"
 description: Regret minimization RL environment — Future Self Advisor
-author: Avi
+author: Av
 entrypoint: inference.py
 
 environment:
@@ -17,8 +17,14 @@ tasks:
       stakes: high
       timeframe: "5 years"
     grader:
-      metric: reward
-      range: [0.01, 0.99]
+      type: llm
+      prompt_template: |
+        You are evaluating advice for: "Should I quit my stable job to pursue my startup idea?"
+        Advice given: {suggestion}
+        Regret risk: {regret_risk}
+        Confidence: {confidence}
+        Rate the quality from 0.0 to 1.0. Never return exactly 0.0 or 1.0.
+        Return only a float.
 
   - id: relationship_decision
     description: Should I move to another city for a relationship?
@@ -27,8 +33,14 @@ tasks:
       stakes: high
       timeframe: "3 years"
     grader:
-      metric: reward
-      range: [0.01, 0.99]
+      type: llm
+      prompt_template: |
+        You are evaluating advice for: "Should I move to another city for a relationship?"
+        Advice given: {suggestion}
+        Regret risk: {regret_risk}
+        Confidence: {confidence}
+        Rate the quality from 0.0 to 1.0. Never return exactly 0.0 or 1.0.
+        Return only a float.
 
   - id: education_decision
     description: Should I go back to school for a masters degree?
@@ -37,8 +49,14 @@ tasks:
       stakes: medium
       timeframe: "2 years"
     grader:
-      metric: reward
-      range: [0.01, 0.99]
+      type: llm
+      prompt_template: |
+        You are evaluating advice for: "Should I go back to school for a masters degree?"
+        Advice given: {suggestion}
+        Regret risk: {regret_risk}
+        Confidence: {confidence}
+        Rate the quality from 0.0 to 1.0. Never return exactly 0.0 or 1.0.
+        Return only a float.
 
 endpoints:
   reset:
